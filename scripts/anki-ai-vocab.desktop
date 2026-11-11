@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=AI 英语收词
+Name[en]=AI Vocabulary
+Comment=输入单词，生成例句，确认保存到 Anki
+Exec=/bin/bash "/home/gys/GitProject/anki-ai-vocab/scripts/launch_gui.sh"
+Icon=accessories-dictionary
+Terminal=false
+Categories=Education;Languages;
+Keywords=Anki;English;Vocabulary;英语;单词;
+StartupNotify=false

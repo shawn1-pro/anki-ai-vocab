@@ -1,0 +1,16 @@
+{
+  "model": "deepseek-flash",
+  "deepseek_base_url": "https://api.deepseek.com",
+  "api_timeout": 30,
+  "max_tokens": 1000,
+  "anki_url": "http://127.0.0.1:8765",
+  "anki_timeout": 10,
+  "deck": "专业学习",
+  "preferred_model": "vocabsieve-notes",
+  "default_topic": "General",
+  "topics": [
+    "General", "SLAM", "Computer Vision", "C++", "Python",
+    "Robotics", "Mathematics", "Control Theory"
+  ],
+  "data_dir": "data"
+}
