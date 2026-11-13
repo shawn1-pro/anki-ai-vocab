@@ -17,6 +17,20 @@ def test_parse_json_and_fenced_json(entry):
     assert parse_vocabulary(f"```json\n{raw}\n```") == entry
 
 
+def test_phonetic_is_trimmed_and_preserved(entry):
+    data = entry.to_dict()
+    data["phonetic"] = f"  {entry.phonetic}  "
+    parsed = Vocabulary.from_dict(data)
+    assert parsed.phonetic == entry.phonetic
+    assert parsed.to_dict()["phonetic"] == entry.phonetic
+
+
+@pytest.mark.parametrize("phonetic", [None, 123, [], "x" * 1001])
+def test_invalid_phonetic(entry, phonetic):
+    with pytest.raises(ValidationError, match="音标"):
+        Vocabulary.from_dict({**entry.to_dict(), "phonetic": phonetic})
+
+
 @pytest.mark.parametrize(
     "field",
     [

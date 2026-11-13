@@ -15,6 +15,7 @@ def settings(tmp_path):
 def entry():
     return Vocabulary(
         word="degeneracy",
+        phonetic="/dɪˈdʒenərəsi/",
         topic="SLAM",
         meaning="退化",
         example="Geometric degeneracy may cause localization drift.",

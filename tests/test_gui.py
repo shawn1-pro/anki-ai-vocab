@@ -153,6 +153,7 @@ def test_generate_fills_editable_preview_without_explanation(window):
     app, fake = window
     assert str(app.save_button.cget("state")) == "disabled"
     generate(app)
+    assert app.widgets["phonetic"].get() == fake.entry.phonetic
     assert app.widgets["meaning"].get() == "退化"
     assert app.widgets["example"].get("1.0", "end-1c") == fake.entry.example
     assert "domain_explanation" not in app.widgets
@@ -174,6 +175,8 @@ def test_confirmed_save_includes_user_edits(window, monkeypatch):
     generate(app)
     app.widgets["meaning"].delete(0, tk.END)
     app.widgets["meaning"].insert(0, "修改后的释义")
+    app.widgets["phonetic"].delete(0, tk.END)
+    app.widgets["phonetic"].insert(0, "/ˈtest/")
     monkeypatch.setattr(gui.messagebox, "askyesno", lambda *args, **kwargs: True)
     app.save()
     wait_for_idle(app)
@@ -181,8 +184,19 @@ def test_confirmed_save_includes_user_edits(window, monkeypatch):
         call for call in fake.calls if isinstance(call, tuple) and call[0] == "save"
     )
     assert saved[1].meaning == "修改后的释义" and saved[2] is True
+    assert saved[1].phonetic == "/ˈtest/"
     assert "321" in app.status.get()
     assert str(app.save_button.cget("state")) == "disabled"
+
+
+def test_old_cache_can_be_previewed_and_phonetic_filled_manually(window):
+    app, fake = window
+    fake.entry = replace(fake.entry, phonetic="")
+    generate(app)
+    assert app.widgets["phonetic"].get() == ""
+    assert "旧缓存暂无音标" in app.status.get()
+    app.widgets["phonetic"].insert(0, "/ˈtest/")
+    assert app.edited_entry().phonetic == "/ˈtest/"
 
 
 def test_changed_word_requires_new_preview(window):
@@ -221,6 +235,7 @@ def test_reset_clears_preview_and_never_saves(window):
     app.reset()
     assert app.word.get() == ""
     assert app.widgets["meaning"].get() == ""
+    assert app.widgets["phonetic"].get() == ""
     assert app.entry is None
     assert not any(isinstance(c, tuple) and c[0] == "save" for c in fake.calls)
 

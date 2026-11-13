@@ -55,6 +55,7 @@ def test_add_payload_and_html_escaping(settings, entry):
     note = payload["params"]["note"]
     assert note["deckName"] == "专业学习"
     assert note["fields"]["Word"] == "degeneracy"
+    assert note["fields"]["Phonetic"] == entry.phonetic
     assert "<script>" not in note["fields"]["Meaning"]
     assert "&lt;script&gt;" in note["fields"]["Meaning"]
     assert "&amp;" in note["fields"]["Meaning"]
@@ -114,10 +115,57 @@ def test_reuse_compatible_vocabsieve_without_modification(settings, entry):
     assert plan.name == "vocabsieve-notes"
     assert not plan.create
     fields = note_fields(entry, plan)
+    assert entry.phonetic in fields["Definition"]
     assert entry.part_of_speech in fields["Definition"]
     assert "专业解释" not in fields["Definition"]
     assert "Audio" not in fields
     assert all(p["action"] in ("modelFieldNames", "modelTemplates") for p in requests)
+
+
+@pytest.mark.parametrize(
+    "phonetic_field,visible",
+    [
+        ("Phonetic", True),
+        ("Phonetics", True),
+        ("IPA", True),
+        ("Pronunciation", True),
+        ("音标", True),
+        ("Phonetic", False),
+        (None, False),
+    ],
+)
+def test_existing_model_displays_phonetic_without_template_changes(
+    settings, entry, phonetic_field, visible
+):
+    def respond(payload):
+        if payload["action"] == "modelFieldNames":
+            names = ["Word", "Meaning", "Example", "ExampleTranslation"]
+            return names + ([phonetic_field] if phonetic_field else [])
+        back = "{{Meaning}}{{Example}}{{ExampleTranslation}}"
+        if visible:
+            back += "{{" + phonetic_field + "}}"
+        return {"Card": {"Front": "{{Word}}", "Back": back}}
+
+    anki, requests = transport_client(settings, respond)
+    with anki:
+        plan = anki.plan_model(["AI Vocabulary"])
+    assert plan.name == "AI Vocabulary" and not plan.create
+    fields = note_fields(entry, plan)
+    if visible:
+        assert fields[phonetic_field] == entry.phonetic
+        assert entry.phonetic not in fields["Meaning"]
+    else:
+        assert "phonetic" not in plan.mapping
+        assert entry.phonetic in fields["Meaning"]
+    assert all(p["action"] in ("modelFieldNames", "modelTemplates") for p in requests)
+
+
+def test_empty_legacy_phonetic_does_not_add_blank_section(entry):
+    fields = note_fields(
+        replace(entry, phonetic=""),
+        ModelPlan("legacy", {"word": "Word", "meaning": "Definition"}),
+    )
+    assert "音标" not in fields["Definition"]
 
 
 def test_incompatible_vocabsieve_gets_independent_model(settings):
@@ -172,6 +220,9 @@ def test_create_model_schema(settings, entry):
     params = requests[1]["params"]
     assert params["inOrderFields"][0] == "Word"
     assert params["cardTemplates"][0]["Front"] == FRONT
+    assert "Phonetic" in params["inOrderFields"]
+    assert "{{Phonetic}}" in params["cardTemplates"][0]["Back"]
+    assert "Phonetic" not in params["cardTemplates"][0]["Front"]
     assert "DomainExplanation" not in params["inOrderFields"]
     assert "专业解释" not in params["cardTemplates"][0]["Back"]
     assert params["isCloze"] is False
@@ -187,6 +238,8 @@ def test_update_preserves_unmapped_fields_and_tags(settings, entry):
         anki.update(note, entry, plan)
     assert [p["action"] for p in requests] == ["updateNoteFields", "addTags"]
     assert requests[0]["params"]["note"]["id"] == 99
+    fields = requests[0]["params"]["note"]["fields"]
+    assert entry.phonetic in fields["Definition"]
     assert "Audio" not in requests[0]["params"]["note"]["fields"]
 
 

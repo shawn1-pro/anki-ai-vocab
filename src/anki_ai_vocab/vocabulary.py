@@ -63,6 +63,7 @@ class Vocabulary:
     part_of_speech: str
     tags: tuple[str, ...]
     source_sentence: str = ""
+    phonetic: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -87,10 +88,15 @@ class Vocabulary:
         source = data.get("source_sentence", "")
         if not isinstance(source, str) or len(source) > 8000:
             raise ValidationError("原句必须是最多 8000 个字符的字符串。")
+        # Older cache entries have no pronunciation; keep them usable offline.
+        phonetic = data.get("phonetic", "")
+        if not isinstance(phonetic, str) or len(phonetic) > 1000:
+            raise ValidationError("音标必须是最多 1000 个字符的字符串。")
         return cls(
             **{name: data[name].strip() for name in TEXT_FIELDS},
             tags=tuple(dict.fromkeys(clean_tag(t) for t in tags if clean_tag(t))),
             source_sentence=source,
+            phonetic=phonetic.strip(),
         )
 
 

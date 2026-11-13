@@ -151,6 +151,15 @@ def test_edit_then_save(cli_run):
     assert note["fields"]["Meaning"] == "我修改的释义"
 
 
+def test_edit_phonetic_then_save(cli_run):
+    edited = "/ˈtest/"
+    number = str(cli.EDITABLE.index("phonetic") + 1)
+    status, calls, _ = cli_run(["e", number, edited, "s"])
+    assert status == 0
+    note = next(p for p in calls if p["action"] == "addNote")["params"]["note"]
+    assert note["fields"]["Phonetic"] == edited
+
+
 def test_regenerate_is_explicit(cli_run):
     status, _, remote = cli_run(["r", "c"])
     assert status == 0 and len(remote) == 2
@@ -168,12 +177,17 @@ def test_generation_error_no_writes(cli_run):
     assert not any(p["action"] in WRITES for p in calls)
 
 
-def test_cached_preview_without_key_or_anki(settings, entry, monkeypatch, capsys):
+@pytest.mark.parametrize("has_phonetic", [True, False])
+def test_cached_preview_without_key_or_anki(
+    settings, entry, monkeypatch, capsys, has_phonetic
+):
     monkeypatch.setattr(
         cli, "load_settings", lambda *args: replace(settings, api_key="")
     )
     with Cache(settings.data_dir / "vocabulary.sqlite3") as cache:
         legacy = {**entry.to_dict(), "domain_explanation": "旧版冗长的解释"}
+        if not has_phonetic:
+            del legacy["phonetic"]
         cache.db.execute(
             "INSERT INTO vocabulary(word, topic, context, content) VALUES(?,?,?,?)",
             (entry.word, "slam", "", json.dumps(legacy)),
@@ -183,6 +197,8 @@ def test_cached_preview_without_key_or_anki(settings, entry, monkeypatch, capsys
     output = capsys.readouterr().out
     assert "退化" in output
     assert entry.example in output
+    assert "音标（IPA）" in output
+    assert (entry.phonetic if has_phonetic else "重新生成补齐") in output
     assert "专业解释" not in output
     assert "旧版冗长的解释" not in output
 

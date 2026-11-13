@@ -26,6 +26,7 @@ from .window_state import (
 
 logger = logging.getLogger(__name__)
 EDIT_FIELDS = {
+    "phonetic": "音标（IPA）",
     "meaning": "中文释义",
     "part_of_speech": "词性",
     "example": "英文例句",
@@ -214,15 +215,16 @@ class VocabularyWindow:
         self.context.grid(row=3, column=1, sticky="ew", pady=9)
         short_fields = ttk.Frame(frame)
         short_fields.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(12, 8))
-        short_fields.columnconfigure(0, weight=3)
-        short_fields.columnconfigure(1, weight=1)
-        for col, key in enumerate(("meaning", "part_of_speech")):
+        for col, (key, weight) in enumerate(
+            (("phonetic", 2), ("meaning", 3), ("part_of_speech", 1))
+        ):
+            short_fields.columnconfigure(col, weight=weight)
             ttk.Label(short_fields, text=EDIT_FIELDS[key]).grid(
                 row=0, column=col, sticky="w"
             )
-            widget = ttk.Entry(short_fields, font=("sans-serif", 12))
+            widget = ttk.Entry(short_fields, width=12, font=("sans-serif", 12))
             widget.grid(
-                row=1, column=col, sticky="ew", padx=(0, 12) if col == 0 else 0, pady=5
+                row=1, column=col, sticky="ew", padx=(0, 12) if col < 2 else 0, pady=5
             )
             self.widgets[key] = widget
         for row, key in ((5, "example"), (6, "example_translation")):
@@ -430,7 +432,11 @@ class VocabularyWindow:
             suffix = "（确认后新建类型）" if target.model.create else ""
             destination = f"{self.settings.deck} · {target.model.name}{suffix}"
         self.destination.set(destination)
-        self.status.set("预览已就绪，可直接修改内容，满意后点击“保存到 Anki”。")
+        self.status.set(
+            "预览已就绪，可直接修改内容，满意后点击“保存到 Anki”。"
+            if entry.phonetic
+            else "旧缓存暂无音标，可手动填写或点击“重新生成”补齐。"
+        )
 
     def regenerate(self) -> None:
         if self.busy or self.entry is None:

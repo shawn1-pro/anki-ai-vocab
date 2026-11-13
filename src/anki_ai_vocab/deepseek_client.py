@@ -29,9 +29,11 @@ SYSTEM_PROMPT = """你是面向大学生的专业英语学习助手。只输出�
 有 source_sentence 时，example 必须逐字使用完整原句，并给出对应的中文翻译；
 释义应匹配原句中的用法。无原句时，生成自然、专业、容易记忆的短英文例句。
 word 和 topic 必须原样返回。不要编造术语定义、引用或来源。
+phonetic 给出符合词性和语境的常见美式读音，使用国际音标（IPA），用 /.../ 包围。
+短语标注完整读音；缩写按常见英文读法标注，不用英文拼读或中文谐音代替音标。
 所有字段必填，tags 是字符串数组，其余为非空字符串。只写纯文本，不写 HTML。
 JSON 格式示例：
-{"word":"degeneracy","topic":"SLAM","meaning":"退化",
+{"word":"degeneracy","phonetic":"/dɪˈdʒenərəsi/","topic":"SLAM","meaning":"退化",
 "example":"Geometric degeneracy may cause localization drift.",
 "example_translation":"几何退化可能导致定位漂移。",
 "part_of_speech":"noun","tags":["SLAM","state_estimation"]}
@@ -127,6 +129,8 @@ class DeepSeekClient:
         if choice.finish_reason != "stop":
             raise ValidationError("DeepSeek 未正常完成生成，请手动重试。")
         entry = parse_vocabulary(choice.message.content or "")
+        if not entry.phonetic:
+            raise ValidationError("模型未返回有效音标，请手动重新生成。")
         if normalize(entry.word) != normalize(word) or normalize(
             entry.topic
         ) != normalize(topic):

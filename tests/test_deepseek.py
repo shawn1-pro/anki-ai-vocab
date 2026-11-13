@@ -67,6 +67,8 @@ def test_actual_sdk_json_payload_and_usage(settings, entry):
     system_prompt = payload["messages"][0]["content"]
     assert "domain_explanation" not in system_prompt
     assert "简短词义或短语" in system_prompt
+    assert "phonetic" in system_prompt
+    assert "国际音标（IPA）" in system_prompt
     assert len(requests) == 1
 
 
@@ -115,7 +117,18 @@ def test_network_failures(settings, error, hint):
         client.close()
 
 
-@pytest.mark.parametrize("variant", ["json", "length", "word", "context", "blank"])
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "json",
+        "length",
+        "word",
+        "context",
+        "blank",
+        "missing_phonetic",
+        "blank_phonetic",
+    ],
+)
 def test_bad_completion_still_records_billed_tokens(settings, entry, variant):
     data = completion(entry)
     choice = data["choices"][0]
@@ -128,6 +141,13 @@ def test_bad_completion_still_records_billed_tokens(settings, entry, variant):
     elif variant == "word":
         content = entry.to_dict()
         content["word"] = "other"
+        choice["message"]["content"] = json.dumps(content)
+    elif variant in ("missing_phonetic", "blank_phonetic"):
+        content = entry.to_dict()
+        if variant == "missing_phonetic":
+            del content["phonetic"]
+        else:
+            content["phonetic"] = "  "
         choice["message"]["content"] = json.dumps(content)
     with Cache(settings.data_dir / "cache.sqlite3") as cache:
         client = DeepSeekClient(

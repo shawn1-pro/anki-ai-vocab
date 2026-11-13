@@ -11,7 +11,9 @@ def test_cache_persists_and_normalizes(tmp_path, entry):
         cache.put(entry)
         cache.put(replace(entry, meaning="更新的释义"))
     with Cache(path) as cache:
-        assert cache.get("  DEGENERACY ", "slam").meaning == "更新的释义"
+        cached = cache.get("  DEGENERACY ", "slam")
+        assert cached.meaning == "更新的释义"
+        assert cached.phonetic == entry.phonetic
         assert cache.get(entry.word, "Robotics") is None
 
 
@@ -32,6 +34,18 @@ def test_corrupt_cache_is_ignored(tmp_path, entry):
         cache.db.execute("UPDATE vocabulary SET content='broken json'")
         cache.db.commit()
         assert cache.get(entry.word, entry.topic) is None
+
+
+def test_cache_without_phonetic_keeps_existing_content(tmp_path, entry):
+    legacy = entry.to_dict()
+    del legacy["phonetic"]
+    with Cache(tmp_path / "cache.sqlite3") as cache:
+        cache.db.execute(
+            "INSERT INTO vocabulary(word, topic, context, content) VALUES(?,?,?,?)",
+            (entry.word, "slam", "", json.dumps(legacy)),
+        )
+        cache.db.commit()
+        assert cache.get(entry.word, entry.topic) == replace(entry, phonetic="")
 
 
 def test_legacy_explanation_is_ignored_without_losing_cached_content(tmp_path, entry):

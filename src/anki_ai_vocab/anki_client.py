@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 MODEL_FIELDS = {
     "word": "Word",
+    "phonetic": "Phonetic",
     "meaning": "Meaning",
     "example": "Example",
     "example_translation": "ExampleTranslation",
@@ -26,6 +27,7 @@ MODEL_FIELDS = {
 }
 ALIASES = {
     "word": ("Word", "Expression", "Term", "单词"),
+    "phonetic": ("Phonetic", "Phonetics", "IPA", "Pronunciation", "音标"),
     "meaning": ("Meaning", "Definition", "Definitions", "释义"),
     "example": ("Example", "Sentence", "例句"),
     "example_translation": (
@@ -40,6 +42,7 @@ ALIASES = {
 }
 FRONT = '<div class="word">{{Word}}</div>'
 BACK = """{{FrontSide}}<hr id="answer">
+{{#Phonetic}}<div class="phonetic">{{Phonetic}}</div>{{/Phonetic}}
 <div class="meta">{{PartOfSpeech}} · {{Topic}}</div>
 <section><div class="label">中文释义</div>{{Meaning}}</section>
 <section><div class="label">英文例句</div>{{Example}}</section>
@@ -48,6 +51,7 @@ CSS = """.card { font-family: sans-serif; font-size: 20px; text-align: left;
 color: #202124; background: #fff; line-height: 1.65; padding: 16px;
 max-width: 680px; margin: auto; overflow-wrap: anywhere; }
 .word { font-size: 32px; font-weight: 700; text-align: center; }
+.phonetic { font-size: 20px; text-align: center; margin: 8px 0; }
 .meta, .label { color: #666; font-size: 15px; }
 section { margin-top: 16px; } hr { border: 0; border-top: 1px solid #ccc; }
 .nightMode.card, .night_mode.card { color: #eee; background: #202124; }
@@ -117,11 +121,12 @@ def note_fields(entry: Vocabulary, plan: ModelPlan) -> dict[str, str]:
     values = {key: safe_html(getattr(entry, key)) for key in MODEL_FIELDS}
     # A four-field vocabulary model can display all content via Definition.
     extras = [
+        ("phonetic", "音标（IPA）"),
         ("part_of_speech", "词性"),
         ("topic", "领域"),
     ]
     for key, label in extras:
-        if key not in plan.mapping:
+        if key not in plan.mapping and values[key]:
             values["meaning"] += f"<br><br><b>{label}</b><br>{values[key]}"
     return {target: values[key] for key, target in plan.mapping.items()}
 

@@ -18,6 +18,7 @@ from .vocabulary import Vocabulary, validate_topic, validate_word
 
 LABELS = {
     "word": "单词",
+    "phonetic": "音标（IPA）",
     "topic": "领域",
     "meaning": "中文释义",
     "example": "英文例句",
@@ -31,6 +32,7 @@ EDITABLE = (
     "example_translation",
     "part_of_speech",
     "tags",
+    "phonetic",
 )
 
 
@@ -65,6 +67,8 @@ def preview(entry: Vocabulary) -> None:
     print("\n" + "─" * 48)
     for key, label in LABELS.items():
         value = getattr(entry, key)
+        if key == "phonetic" and not value:
+            value = "暂无，可编辑填写或重新生成补齐"
         print(f"{label}：{', '.join(value) if key == 'tags' else value}")
     if entry.source_sentence:
         print(f"原始语境：{entry.source_sentence}")
